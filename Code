@@ -1,0 +1,299 @@
+
+Sub Run_Click()
+
+
+Application.ScreenUpdating = False
+
+Set Macro = Workbooks("FRP2_DataVisualizationTool.xlsm")
+Set Datasheet = Macro.Sheets("Datasheet")
+Set HP104 = Macro.Sheets("HP104")
+Set HP105 = Macro.Sheets("HP105")
+Set HP204 = Macro.Sheets("HP204")
+Set HP205 = Macro.Sheets("HP205")
+Set GSE = Macro.Sheets("GSE")
+
+'If statements for time increment
+If OneMinuteOption = True Then
+
+    Call CopyPasteData("Databook_1m.csv", "Databook_1m", 247, 357)
+
+End If
+
+If Option2 = True Then
+
+    Call CopyPasteData("Databook_15m.csv", "Databook_1m", 247, 357)
+
+End If
+
+If Option3hour = True Then
+
+    Call CopyPasteData("Databook_1hr.csv", "Databook_1hr", 247, 357)
+
+End If
+    
+    
+    
+If CheckBox2 = True Then
+ 
+ ii = 0
+ 
+ Call CopyPasteData("Databook_temp.csv", "Databook_temp", 471, 499)
+ 
+End If
+ 
+    
+ Application.ScreenUpdating = True
+ 
+ Unload Me
+ 
+ Datasheet.Activate
+ 
+ End Sub
+
+
+Sub CopyPasteData(Workbook As String, Worksheet As String, FirstDataColumn As Integer, LastDataColumn As Integer)
+
+Set Databook = Workbooks(Workbook)
+Set Sheet = Databook.Sheets(Worksheet)
+'Public
+
+Dim Input_Date As Date
+Dim Input_StartHour As Integer
+Dim Input_StartMinute As Integer
+Dim Input_EndHour As Integer
+Dim Input_EndMinute As Integer
+Dim Input_DateHour As Date
+Dim Input_StartTime As Date
+Dim Input_EndDate As Date
+
+Dim i As Long
+Dim dateval As Date
+Dim h As Integer
+Dim m As Integer
+Dim date_time As Date
+Dim mm As Integer
+
+'Worbooks and Worksheets
+Dim Macro As Workbook
+'Dim Databook As Workbook
+Dim Datasheet As Worksheet
+Dim Sheet1 As Worksheet
+Dim HP104 As Worksheet
+Dim HP105 As Worksheet
+Dim HP204 As Worksheet
+Dim HP205 As Worksheet
+Dim Databook_1m As Workbook
+Dim Datasheet_1m As Worksheet
+Dim Databook_1hr As Workbook
+Dim Datasheet_1hr As Worksheet
+Dim GSE As Worksheet
+
+'Set shortcuts
+Set Macro = Workbooks("FRP2_DataVisualizationTool.xlsm")
+Set Datasheet = Macro.Sheets("Datasheet")
+Set HP104 = Macro.Sheets("HP104")
+Set HP105 = Macro.Sheets("HP105")
+Set HP204 = Macro.Sheets("HP204")
+Set HP205 = Macro.Sheets("HP205")
+Set GSE = Macro.Sheets("GSE")
+Set Datasheet_temp = Macro.Sheets("Datasheet_temp")
+Set temp = Macro.Sheets("Temp")
+
+
+'Userform Inputs
+Input_Date = InputStartDate.Value
+Input_StartHour = InputStartHour.Text
+Input_StartMinute = InputStartMinute.Text
+Input_EndHour = InputEndHour.Text
+Input_EndMinute = InputEndMinute.Text
+
+
+If CheckBox1 = True Then
+Input_EndDate = Input_Date
+Else
+Input_EndDate = InputEndDate.Text
+End If
+
+'Build start time
+Input_DateHour = DateAdd("h", Input_StartHour, Input_Date)
+Input_StartTime = DateAdd("n", Input_StartMinute, Input_DateHour)
+
+'Build end time
+Input_EndDateHour = DateAdd("h", Input_EndHour, Input_EndDate)
+Input_EndTime = DateAdd("n", Input_EndMinute, Input_EndDateHour)
+
+If FirstDataColumn > 400 Then
+
+    Set Datasheet = Macro.Sheets("Datasheet_temp")
+
+End If
+
+
+i = 6
+
+Datasheet.Range("A1").Value = Input_Date
+
+Do
+    'Input date found
+      
+       If Sheet.Cells(i, 1).Value > Input_StartTime Then
+       
+            ii = i - 1
+            
+            'Clears old data, copies new data, and pastes new data in one row segments, looping to next row
+            
+             With Datasheet
+                        .Range(.Cells(3, 1), .Cells(1443, 113)).ClearContents
+                End With
+            kk = 3
+            
+            Do
+        
+               
+               With Datasheet
+                .Cells(kk, 1).Clear
+               End With
+               
+               With Sheet
+                        Sheet.Cells(ii, 1).Copy
+                End With
+                
+                With Datasheet
+                        Application.DisplayAlerts = False
+                        Datasheet.Select
+                        .Cells(kk, 1).Select
+                        ActiveSheet.Paste
+                        Application.DisplayAlerts = False
+               End With
+               
+               With Datasheet
+                    .Cells(kk, 2).Clear
+                End With
+                
+                date_time = Sheet.Cells(ii, 1).Value
+                h = Format(date_time, "h")
+                m = Format(date_time, "n")
+                timeval = TimeSerial(h, m, 0)
+                
+                With Datasheet
+                        .Cells(kk, 2) = timeval
+               End With
+                
+               
+               With Datasheet
+               .Range(.Cells(kk, 3), .Cells(kk, 113)).Clear
+                End With
+                
+                With Sheet
+                    Sheet.Range(.Cells(ii, FirstDataColumn), .Cells(ii, LastDataColumn)).Copy
+                End With
+            
+                With Datasheet
+                    Application.DisplayAlerts = False
+                    
+                    .Range(.Cells(kk, 3), .Cells(kk, 112)).Select
+                    ActiveSheet.Paste
+                    '.Range(.Cells(kk, 3), .Cells(kk, 112)).PasteSpecial Paste:=xlPasteAll
+                    
+                    Application.DisplayAlerts = False
+                End With
+            kk = kk + 1
+            ii = ii + 1
+            Loop Until Sheet.Cells(ii, 1).Value > Input_EndTime
+            'Next
+        End If
+        i = i + 1
+    Loop Until ii > 10 'Ends loop after for loop has executed
+
+
+    Call ExtendFormulas2(HP105, kk)
+    Call ExtendFormulas2(HP205, kk)
+    Call ExtendFormulas(HP104, kk)
+    Call ExtendFormulas(HP204, kk)
+
+'extend formulas GSE
+    For yy = 2 To 11 Step 1
+        With GSE
+            GSE.Select
+            .Cells(3, yy).Select
+            Selection.AutoFill Destination:=Range(.Cells(3, yy), .Cells(kk, yy)), Type:=xlFillDefault
+        End With
+    Next
+
+
+    If FirstDataColumn > 400 Then
+        'extend formulas temp
+         For yy = 2 To 30 Step 1
+            With temp
+                 temp.Select
+                .Cells(3, yy).Select
+                 Selection.AutoFill Destination:=Range(.Cells(3, yy), .Cells(kk, yy)), Type:=xlFillDefault
+            End With
+        Next
+    
+        'delete duplicates temp
+        Range("D3").Select
+        Application.CutCopyMode = False
+        ActiveSheet.Range("Table6[#ALL]").RemoveDuplicates Columns:=Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29)
+    
+    End If
+    
+    'Delete duplicates HP104
+    Application.CutCopyMode = False
+    HP104.Range("Table1[#ALL]").RemoveDuplicates Columns:=Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19)
+    'Call DeleteZeroRow(HP104, "Table1", kk)
+    
+    'delete duplicates HP105
+    HP105.Range("Table2[#ALL]").RemoveDuplicates Columns:=Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 36, 37, 38)
+    'Call DeleteZeroRow(HP105, "Table2", kk)
+    
+    'delete duplicates HP204
+    HP204.Range("Table3[#ALL]").RemoveDuplicates Columns:=Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19)
+    'Call DeleteZeroRow(HP204, "Table3", kk)
+    
+    'delete duplicates HP205
+    HP205.Range("Table4[#ALL]").RemoveDuplicates Columns:=Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 34, 35, 36, 37, 38)
+    'Call DeleteZeroRow(HP205, "Table4", kk)
+    
+    'delete duplicates GSE
+    Application.CutCopyMode = False
+    GSE.Range("Table5[#ALL]").RemoveDuplicates Columns:=Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    'Call DeleteZeroRow(GSE, "Table5", kk)
+    
+
+End Sub
+
+Sub ExtendFormulas(Worksheet As Worksheet, kk)
+For mm = 1 To 20 Step 1
+        With Worksheet
+            Worksheet.Select
+            .Cells(3, mm).Select
+            Selection.AutoFill Destination:=Range(.Cells(3, mm), .Cells(kk, mm)), Type:=xlFillDefault
+        End With
+    Next
+    
+    
+End Sub
+
+Sub ExtendFormulas2(Worksheet As Worksheet, kk)
+
+
+For nn = 1 To 39 Step 1
+        With Worksheet
+            Worksheet.Select
+            .Cells(3, nn).Select
+            Selection.AutoFill Destination:=Range(.Cells(3, nn), .Cells(kk, nn)), Type:=xlFillDefault
+        End With
+    Next
+
+End Sub
+
+
+'Sub DeleteZeroRow(Worksheet As Worksheet, table As String, kk)
+
+'With Worksheet
+    
+ '   If Worksheet.Cells(kk, 3).Value = 0 Then
+  '      Worksheet.Select
+   '     Cells(kk, 3).Select
+    '    Selection.ListObject.ListRows(kk).Delete
